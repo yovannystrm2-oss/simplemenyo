@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -14,6 +13,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <style>
         :root {
@@ -661,7 +662,6 @@
             opacity: 0.5;
             cursor: not-allowed;
             pointer-events: none;
-            color: #ff0000;
         }
         
         /* Nuevos estilos para filtros de fecha en historial */
@@ -740,6 +740,92 @@
             padding: 15px;
             border-radius: 15px;
             text-align: center;
+        }
+        
+        /* Nuevos estilos para el sistema de login */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+        
+        .login-box {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-logo {
+            font-size: 40px;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .login-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: white;
+        }
+        
+        .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        /* Estilos para la calculadora de vuelto */
+        .calculator {
+            background-color: var(--dark-light);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 15px;
+        }
+        
+        .calculator-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .calculator-result {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
         }
         
         /* Animaciones personalizadas */
@@ -868,8 +954,37 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Contenedor de login (inicialmente visible) -->
+    <div class="login-container" id="login-container">
+        <div class="login-box">
+            <div class="login-logo">
+                <i class="fas fa-store"></i>
+            </div>
+            <h2 class="login-title">Iniciar Sesión - Anyela</h2>
+            <div class="login-form">
+                <select id="login-user">
+                    <option value="">Seleccionar usuario</option>
+                    <option value="admin">Administrador</option>
+                    <option value="vendedor">Vendedor</option>
+                </select>
+                <input type="password" id="login-password" placeholder="Contraseña">
+                <button class="btn" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contenedor principal (inicialmente oculto) -->
+    <div class="container" id="main-container" style="display: none;">
         <header>
+            <div class="user-info" id="user-info">
+                <i class="fas fa-user"></i>
+                <span id="user-name">Usuario</span>
+                <button class="logout-btn" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
             <h1><i class="fas fa-store"></i> Anyela</h1>
             <p>By: Yovanny  </p>
             <div class="theme-switch" id="theme-switch">
@@ -1021,6 +1136,30 @@
                 <button class="btn btn-secondary" id="update-cash-btn">
                     <i class="fas fa-exchange-alt"></i> Actualizar Caja
                 </button>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-calculator"></i> Calculadora de Vuelto</h2>
+                <div class="calculator">
+                    <div class="calculator-row">
+                        <label for="calc-price">Precio por kg (S/):</label>
+                        <input type="number" id="calc-price" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="calculator-row">
+                        <label for="calc-quantity">Cantidad (kg):</label>
+                        <input type="number" id="calc-quantity" placeholder="0.0" step="0.1">
+                    </div>
+                    <div class="calculator-row">
+                        <label for="calc-received">Monto recibido (S/):</label>
+                        <input type="number" id="calc-received" placeholder="0.00" step="0.01">
+                    </div>
+                    <button class="btn btn-secondary" id="calculate-change">
+                        <i class="fas fa-calculator"></i> Calcular Vuelto
+                    </button>
+                    <div class="calculator-result" id="change-result">
+                        Vuelto: S/ 0.00
+                    </div>
+                </div>
             </div>
             
             <div class="card">
@@ -1205,27 +1344,11 @@
                     </div>
                 </div>
                 
-                <div class="report-option" data-report-type="products">
-                    <i class="fas fa-chart-pie"></i>
-                    <div>
-                        <strong>Producto Estrella</strong>
-                        <p>Análisis de productos más vendidos</p>
-                    </div>
-                </div>
-                
-                <div class="report-option" data-report-type="payments">
-                    <i class="fas fa-credit-card"></i>
-                    <div>
-                        <strong>Medios de Pago</strong>
-                        <p>Análisis de métodos de pago</p>
-                    </div>
-                </div>
-                
-                <div class="report-option" data-report-type="full">
+                <div class="report-option" data-report-type="detailed">
                     <i class="fas fa-file-alt"></i>
                     <div>
-                        <strong>Reporte Completo</strong>
-                        <p>Todos los análisis en un solo documento</p>
+                        <strong>Detalles Completos</strong>
+                        <p>Ventas, gastos, productos y métodos de pago</p>
                     </div>
                 </div>
             </div>
@@ -1270,6 +1393,15 @@
             movements: []
         };
         
+        // Datos de usuarios
+        const users = {
+            'admin': { password: 'admin123', role: 'admin', name: 'Administrador' },
+            'vendedor': { password: 'vendedor123', role: 'vendedor', name: 'Vendedor' }
+        };
+        
+        // Variable para almacenar el usuario actual
+        let currentUser = null;
+        
         // Elementos del DOM
         const balanceEl = document.getElementById('balance');
         const totalSalesEl = document.getElementById('total-sales');
@@ -1307,6 +1439,9 @@
         const closeReportModalBtn = document.getElementById('close-report-modal');
         const reportOptions = document.querySelectorAll('.report-option');
         const syncDataBtn = document.getElementById('sync-data-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const calculateChangeBtn = document.getElementById('calculate-change');
         
         // Variables para el nuevo sistema
         const notificationContainer = document.getElementById('notification-container');
@@ -1357,6 +1492,9 @@
                 reportModal.style.display = 'none';
             });
             syncDataBtn.addEventListener('click', syncWithFirebase);
+            loginBtn.addEventListener('click', login);
+            logoutBtn.addEventListener('click', logout);
+            calculateChangeBtn.addEventListener('click', calculateChange);
             
             // Configurar opciones de reporte
             reportOptions.forEach(option => {
@@ -1382,6 +1520,11 @@
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabId = tab.getAttribute('data-tab');
+                    
+                    // Si la pestaña está deshabilitada, no hacer nada
+                    if (tab.classList.contains('disabled')) {
+                        return;
+                    }
                     
                     // Activar pestaña
                     tabs.forEach(t => t.classList.remove('active'));
@@ -1416,6 +1559,265 @@
             checkConnectionStatus();
             window.addEventListener('online', checkConnectionStatus);
             window.addEventListener('offline', checkConnectionStatus);
+        }
+        
+        // Función de login
+        function login() {
+            const username = document.getElementById('login-user').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                showNotification('Por favor, complete todos los campos', 'error');
+                return;
+            }
+            
+            if (users[username] && users[username].password === password) {
+                currentUser = users[username];
+                
+                // Ocultar login, mostrar aplicación
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('main-container').style.display = 'block';
+                
+                // Actualizar UI según el rol
+                updateUIForUser();
+                
+                showNotification(`Bienvenido, ${currentUser.name}`, 'success');
+            } else {
+                showNotification('Usuario o contraseña incorrectos', 'error');
+            }
+        }
+        
+        // Función de logout
+        function logout() {
+            currentUser = null;
+            document.getElementById('login-container').style.display = 'flex';
+            document.getElementById('main-container').style.display = 'none';
+            document.getElementById('login-password').value = '';
+            showNotification('Sesión cerrada', 'success');
+        }
+        
+        // Función para mostrar/ocultar elementos según el rol
+        function updateUIForUser() {
+            const configTab = document.querySelector('.tab[data-tab="config"]');
+            
+            if (currentUser.role === 'vendedor') {
+                // Vendedor no puede acceder a configuración
+                configTab.classList.add('disabled');
+                
+                // Si está en la pestaña de configuración, redirigir a ventas
+                if (document.getElementById('config').classList.contains('active')) {
+                    document.querySelector('.tab[data-tab="sales"]').click();
+                }
+            } else {
+                // Admin puede acceder a todo
+                configTab.classList.remove('disabled');
+            }
+            
+            // Actualizar nombre de usuario
+            document.getElementById('user-name').textContent = currentUser.name;
+        }
+        
+        // Calculadora de vuelto
+        function calculateChange() {
+            const price = parseFloat(document.getElementById('calc-price').value) || 0;
+            const quantity = parseFloat(document.getElementById('calc-quantity').value) || 0;
+            const received = parseFloat(document.getElementById('calc-received').value) || 0;
+            
+            const total = price * quantity;
+            const change = received - total;
+            
+            if (change < 0) {
+                document.getElementById('change-result').textContent = `Falta: S/ ${Math.abs(change).toFixed(2)}`;
+                document.getElementById('change-result').style.backgroundColor = 'var(--danger)';
+            } else {
+                document.getElementById('change-result').textContent = `Vuelto: S/ ${change.toFixed(2)}`;
+                document.getElementById('change-result').style.backgroundColor = 'var(--success)';
+            }
+        }
+        
+        // Función mejorada para generar reportes PDF
+        function generateReport(reportType) {
+            // Ordenar transacciones por fecha (más recientes primero)
+            const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+                return new Date(b.date.split(' ')[0].split('/').reverse().join('-')) - 
+                       new Date(a.date.split(' ')[0].split('/').reverse().join('-'));
+            });
+            
+            switch(reportType) {
+                case 'executive':
+                    generateExecutiveReport(sortedTransactions);
+                    break;
+                case 'sales':
+                    generateSalesReport(sortedTransactions);
+                    break;
+                case 'expenses':
+                    generateExpensesReport(sortedTransactions);
+                    break;
+                case 'detailed':
+                    generateDetailedReport(sortedTransactions);
+                    break;
+            }
+        }
+
+        // Función mejorada para reporte de ventas
+        function generateSalesReport(salesData) {
+            const doc = new jsPDF();
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            
+            // Encabezado
+            doc.setFontSize(20);
+            doc.text("ANÁLISIS DE VENTAS - Anyela", 105, 20, { align: "center" });
+            doc.setFontSize(12);
+            doc.text(`Generado el: ${dateStr}`, 105, 30, { align: "center" });
+            
+            // Resumen
+            const totalSales = salesData.reduce((sum, t) => sum + t.amount, 0);
+            doc.setFontSize(14);
+            doc.text(`Total de ventas: S/ ${totalSales.toFixed(2)}`, 20, 45);
+            doc.text(`Cantidad de transacciones: ${salesData.length}`, 20, 52);
+            
+            // Producto más vendido
+            const productStats = {};
+            salesData.forEach(sale => {
+                if (!productStats[sale.product]) {
+                    productStats[sale.product] = { quantity: 0, amount: 0 };
+                }
+                productStats[sale.product].quantity += sale.quantity;
+                productStats[sale.product].amount += sale.amount;
+            });
+            
+            let topProduct = '';
+            let topQuantity = 0;
+            Object.entries(productStats).forEach(([product, data]) => {
+                if (data.quantity > topQuantity) {
+                    topProduct = product;
+                    topQuantity = data.quantity;
+                }
+            });
+            
+            doc.text(`Producto más vendido: ${topProduct} (${topQuantity} kg)`, 20, 59);
+            
+            // Tabla detallada
+            const tableData = salesData.map(sale => [
+                sale.date.split(' ')[0],
+                sale.product,
+                sale.quantity + ' kg',
+                `S/ ${sale.price.toFixed(2)}`,
+                `S/ ${sale.amount.toFixed(2)}`,
+                sale.paymentMethod
+            ]);
+            
+            doc.autoTable({
+                startY: 70,
+                head: [['Fecha', 'Producto', 'Cantidad', 'Precio', 'Total', 'Pago']],
+                body: tableData,
+                theme: 'grid'
+            });
+            
+            doc.save(`Ventas_${dateStr.replace(/\//g, '-')}.pdf`);
+            showNotification('Reporte de ventas generado', 'success');
+        }
+        
+        // Función para reporte detallado
+        function generateDetailedReport(transactionsData) {
+            const doc = new jsPDF();
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            
+            // Encabezado
+            doc.setFontSize(20);
+            doc.text("REPORTE DETALLADO - Anyela", 105, 20, { align: "center" });
+            
+            // Resumen general
+            const sales = transactionsData.filter(t => t.type === 'sale');
+            const expenses = transactionsData.filter(t => t.type === 'expense');
+            
+            const totalSales = sales.reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalSales - totalExpenses;
+            
+            doc.setFontSize(12);
+            doc.text(`Período: ${document.getElementById('history-date-from').value} a ${document.getElementById('history-date-to').value}`, 105, 30, { align: "center" });
+            doc.text(`Ventas totales: S/ ${totalSales.toFixed(2)}`, 20, 45);
+            doc.text(`Gastos totales: S/ ${totalExpenses.toFixed(2)}`, 20, 52);
+            doc.text(`Balance: S/ ${balance.toFixed(2)}`, 20, 59);
+            
+            // Producto más vendido
+            const productStats = {};
+            sales.forEach(sale => {
+                if (!productStats[sale.product]) {
+                    productStats[sale.product] = { quantity: 0, amount: 0 };
+                }
+                productStats[sale.product].quantity += sale.quantity;
+                productStats[sale.product].amount += sale.amount;
+            });
+            
+            let topProduct = '';
+            let topQuantity = 0;
+            Object.entries(productStats).forEach(([product, data]) => {
+                if (data.quantity > topQuantity) {
+                    topProduct = product;
+                    topQuantity = data.quantity;
+                }
+            });
+            
+            doc.text(`Producto más vendido: ${topProduct} (${topQuantity} kg)`, 20, 66);
+            
+            // Métodos de pago
+            const paymentStats = {};
+            sales.forEach(sale => {
+                if (!paymentStats[sale.paymentMethod]) {
+                    paymentStats[sale.paymentMethod] = 0;
+                }
+                paymentStats[sale.paymentMethod] += sale.amount;
+            });
+            
+            let yPos = 80;
+            doc.text("Métodos de pago:", 20, yPos);
+            yPos += 7;
+            
+            Object.entries(paymentStats).forEach(([method, amount]) => {
+                const percentage = (amount / totalSales) * 100;
+                doc.text(`${method}: S/ ${amount.toFixed(2)} (${percentage.toFixed(1)}%)`, 25, yPos);
+                yPos += 7;
+            });
+            
+            // Detalle de transacciones
+            yPos += 10;
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.text("DETALLE DE TRANSACCIONES", 20, yPos);
+            yPos += 10;
+            
+            const tableData = transactionsData.map(transaction => [
+                transaction.date.split(' ')[0],
+                transaction.type === 'sale' ? transaction.product : transaction.description,
+                transaction.type,
+                transaction.type === 'sale' ? transaction.quantity + ' kg' : '-',
+                transaction.type === 'sale' ? `S/ ${transaction.price.toFixed(2)}` : '-',
+                `S/ ${transaction.amount.toFixed(2)}`,
+                transaction.paymentMethod || '-'
+            ]);
+            
+            doc.autoTable({
+                startY: yPos,
+                head: [['Fecha', 'Descripción', 'Tipo', 'Cantidad', 'Precio', 'Total', 'Pago']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [46, 134, 222],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                }
+            });
+            
+            doc.save(`Reporte_Detallado_${dateStr.replace(/\//g, '-')}.pdf`);
+            showNotification('Reporte detallado generado', 'success');
         }
         
         // Verificar estado de conexión
@@ -1644,6 +2046,12 @@
         
         // Añadir una nueva venta
         function addSale() {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser) {
+                showNotification('Debe iniciar sesión para realizar ventas', 'error');
+                return;
+            }
+            
             const product = selectedProduct;
             const productInfo = predefinedProducts[product] || { precio: 0, tipo: "por-kg" };
             let quantity, price;
@@ -1706,6 +2114,12 @@
         
         // Añadir un nuevo gasto
         async function addExpense() {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser) {
+                showNotification('Debe iniciar sesión para registrar gastos', 'error');
+                return;
+            }
+            
             const description = document.getElementById('expense-description').value;
             const amount = parseFloat(document.getElementById('expense-amount').value);
             const category = expenseCategoryEl.value;
@@ -1763,6 +2177,12 @@
         
         // Actualizar la caja
         async function updateCash() {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Solo el administrador puede gestionar la caja', 'error');
+                return;
+            }
+            
             const operation = document.getElementById('cash-operation').value;
             const amount = parseFloat(document.getElementById('cash-amount-input').value);
             const description = document.getElementById('cash-description').value;
@@ -2000,600 +2420,6 @@
             }
         }
         
-        // Generar reporte PDF según el tipo seleccionado
-        function generateReport(reportType) {
-            switch(reportType) {
-                case 'executive':
-                    generateExecutiveReport();
-                    break;
-                case 'sales':
-                    generateSalesReport();
-                    break;
-                case 'expenses':
-                    generateExpensesReport();
-                    break;
-                case 'products':
-                    generateProductsReport();
-                    break;
-                case 'payments':
-                    generatePaymentsReport();
-                    break;
-                case 'full':
-                    generateFullReport();
-                    break;
-            }
-        }
-        
-        // Generar reporte ejecutivo (dashboard)
-        function generateExecutiveReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("RESUMEN EJECUTIVO - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Calcular KPIs
-            const totalSales = transactions
-                .filter(t => t.type === 'sale')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpenses = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const netResult = totalSales - totalExpenses;
-            
-            // Producto estrella
-            const productStats = {};
-            transactions
-                .filter(t => t.type === 'sale')
-                .forEach(t => {
-                    if (!productStats[t.product]) {
-                        productStats[t.product] = { quantity: 0, amount: 0 };
-                    }
-                    productStats[t.product].quantity += t.quantity;
-                    productStats[t.product].amount += t.amount;
-                });
-            
-            let starProduct = "N/A";
-            let starProductPercentage = 0;
-            if (Object.keys(productStats).length > 0) {
-                const sortedProducts = Object.entries(productStats).sort((a, b) => b[1].amount - a[1].amount);
-                starProduct = sortedProducts[0][0];
-                starProductPercentage = (sortedProducts[0][1].amount / totalSales) * 100;
-            }
-            
-            // Medio de pago favorito
-            const paymentStats = {
-                efectivo: 0,
-                yape: 0,
-                transferencia: 0,
-                caja: 0
-            };
-            
-            transactions
-                .filter(t => t.type === 'sale')
-                .forEach(t => {
-                    paymentStats[t.paymentMethod] += t.amount;
-                });
-            
-            let favoritePayment = "N/A";
-            let favoritePaymentPercentage = 0;
-            const totalPaymentAmount = Object.values(paymentStats).reduce((sum, amount) => sum + amount, 0);
-            
-            if (totalPaymentAmount > 0) {
-                const sortedPayments = Object.entries(paymentStats).sort((a, b) => b[1] - a[1]);
-                favoritePayment = sortedPayments[0][0];
-                favoritePaymentPercentage = (sortedPayments[0][1] / totalPaymentAmount) * 100;
-            }
-            
-            // KPIs en cajas visuales
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("DASHBOARD DE KPIs", 20, 45);
-            
-            // Ventas Totales
-            doc.setFillColor(46, 134, 222);
-            doc.rect(20, 55, 85, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.text("VENTAS TOTALES", 30, 62);
-            doc.setFontSize(16);
-            doc.text(`S/ ${totalSales.toFixed(2)}`, 30, 75);
-            
-            // Gastos Totales
-            doc.setFillColor(238, 82, 83);
-            doc.rect(110, 55, 85, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.text("GASTOS TOTALES", 120, 62);
-            doc.setFontSize(16);
-            doc.text(`S/ ${totalExpenses.toFixed(2)}`, 120, 75);
-            
-            // Resultado Neto
-            doc.setFillColor(16, 172, 132);
-            doc.rect(20, 90, 85, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.text("RESULTADO NETO", 30, 97);
-            doc.setFontSize(16);
-            doc.text(`S/ ${netResult.toFixed(2)}`, 30, 110);
-            
-            // Producto Estrella
-            doc.setFillColor(255, 159, 67);
-            doc.rect(110, 90, 85, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.text("PRODUCTO ESTRELLA", 120, 97);
-            doc.setFontSize(12);
-            doc.text(`${starProduct}`, 120, 107);
-            doc.text(`${starProductPercentage.toFixed(1)}%`, 120, 114);
-            
-            // Medio de Pago Favorito
-            doc.setFillColor(108, 92, 231);
-            doc.rect(20, 125, 85, 30, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(12);
-            doc.text("PAGO FAVORITO", 30, 132);
-            doc.text(`${favoritePayment}`, 30, 142);
-            doc.text(`${favoritePaymentPercentage.toFixed(1)}%`, 30, 149);
-            
-            // Guardar PDF
-            doc.save(`Resumen_Ejecutivo_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Resumen ejecutivo generado correctamente', 'success');
-        }
-        
-        // Generar reporte de ventas
-        function generateSalesReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("ANÁLISIS DE VENTAS - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Resumen de ventas
-            const totalSales = transactions
-                .filter(t => t.type === 'sale')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalSalesCount = transactions.filter(t => t.type === 'sale').length;
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("RESUMEN DE VENTAS", 20, 45);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(80, 80, 80);
-            doc.text(`Total de ventas: S/ ${totalSales.toFixed(2)}`, 20, 55);
-            doc.text(`Cantidad de transacciones: ${totalSalesCount}`, 20, 62);
-            
-            // Tabla detallada de ventas
-            let yPos = 75;
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("DETALLE DE VENTAS", 20, yPos);
-            yPos += 10;
-            
-            // Tabla de ventas
-            const salesData = transactions
-                .filter(t => t.type === 'sale')
-                .map(t => [
-                    t.date.split(' ')[0],
-                    t.product,
-                    t.quantity + (predefinedProducts[t.product]?.tipo === "fijo" ? " unid" : " kg"),
-                    `S/ ${t.price.toFixed(2)}`,
-                    `S/ ${t.amount.toFixed(2)}`,
-                    t.paymentMethod
-                ]);
-            
-            doc.autoTable({
-                startY: yPos,
-                head: [['Fecha', 'Producto', 'Cantidad', 'Precio', 'Total', 'Pago']],
-                body: salesData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [46, 134, 222],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold'
-                },
-                alternateRowStyles: {
-                    fillColor: [240, 240, 240]
-                }
-            });
-            
-            // Gráfico de evolución de ventas (simulado con texto)
-            const lastPosition = doc.lastAutoTable.finalY;
-            yPos = lastPosition + 15;
-            
-            if (yPos < 200) {
-                doc.setFontSize(16);
-                doc.setTextColor(50, 50, 50);
-                doc.text("EVOLUCIÓN DE VENTAS", 20, yPos);
-                yPos += 10;
-                
-                // Simulación de gráfico con texto
-                doc.setFontSize(10);
-                doc.setTextColor(80, 80, 80);
-                doc.text("Gráfico de líneas: Evolución de ventas día a día", 20, yPos);
-                yPos += 7;
-                doc.text("Gráfico de barras: Comparativa de ventas por producto", 20, yPos);
-            }
-            
-            // Guardar PDF
-            doc.save(`Analisis_Ventas_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Análisis de ventas generado correctamente', 'success');
-        }
-        
-        // Generar reporte de gastos
-        function generateExpensesReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("ANÁLISIS DE GASTOS - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Resumen de gastos
-            const totalExpenses = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpensesCount = transactions.filter(t => t.type === 'expense').length;
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("RESUMEN DE GASTOS", 20, 45);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(80, 80, 80);
-            doc.text(`Total de gastos: S/ ${totalExpenses.toFixed(2)}`, 20, 55);
-            doc.text(`Cantidad de transacciones: ${totalExpensesCount}`, 20, 62);
-            
-            // Porcentaje de gastos sobre ventas
-            const totalSales = transactions
-                .filter(t => t.type === 'sale')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const expensesPercentage = totalSales > 0 ? (totalExpenses / totalSales) * 100 : 0;
-            
-            doc.text(`Porcentaje de gastos sobre ventas: ${expensesPercentage.toFixed(2)}%`, 20, 72);
-            
-            // Gastos por categoría
-            const expensesByCategory = {};
-            categories.expense.forEach(category => {
-                expensesByCategory[category] = 0;
-            });
-            
-            transactions
-                .filter(t => t.type === 'expense')
-                .forEach(t => {
-                    expensesByCategory[t.category] += t.amount;
-                });
-            
-            doc.text("Distribución de gastos por categoría:", 20, 85);
-            let yPos = 92;
-            
-            Object.keys(expensesByCategory).forEach(category => {
-                if (expensesByCategory[category] > 0) {
-                    const percentage = (expensesByCategory[category] / totalExpenses) * 100;
-                    doc.text(`${category}: S/ ${expensesByCategory[category].toFixed(2)} (${percentage.toFixed(1)}%)`, 25, yPos);
-                    yPos += 7;
-                }
-            });
-            
-            // Detalle de gastos
-            yPos += 10;
-            if (yPos > 240) {
-                doc.addPage();
-                yPos = 20;
-            }
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("DETALLE DE GASTOS", 20, yPos);
-            yPos += 10;
-            
-            // Tabla de gastos
-            const expensesData = transactions
-                .filter(t => t.type === 'expense')
-                .map(t => [
-                    t.date.split(' ')[0],
-                    t.description,
-                    t.category,
-                    `S/ ${t.amount.toFixed(2)}`,
-                    t.paymentMethod
-                ]);
-            
-            doc.autoTable({
-                startY: yPos,
-                head: [['Fecha', 'Descripción', 'Categoría', 'Monto', 'Pago']],
-                body: expensesData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [222, 66, 66],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold'
-                },
-                alternateRowStyles: {
-                    fillColor: [240, 240, 240]
-                }
-            });
-            
-            // Guardar PDF
-            doc.save(`Analisis_Gastos_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Análisis de gastos generado correctamente', 'success');
-        }
-        
-        // Generar reporte de producto estrella
-        function generateProductsReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("PRODUCTO ESTRELLA - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Análisis de productos más vendidos
-            const productStats = {};
-            
-            transactions
-                .filter(t => t.type === 'sale')
-                .forEach(t => {
-                    if (!productStats[t.product]) {
-                        productStats[t.product] = {
-                            quantity: 0,
-                            amount: 0,
-                            count: 0
-                        };
-                    }
-                    
-                    productStats[t.product].quantity += t.quantity;
-                    productStats[t.product].amount += t.amount;
-                    productStats[t.product].count += 1;
-                });
-            
-            // Convertir a array y ordenar por cantidad vendida
-            const sortedProducts = Object.entries(productStats)
-                .sort((a, b) => b[1].quantity - a[1].quantity);
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("PRODUCTO ESTRELLA", 20, 45);
-            
-            if (sortedProducts.length === 0) {
-                doc.setFontSize(12);
-                doc.setTextColor(80, 80, 80);
-                doc.text("No hay datos de ventas disponibles", 20, 55);
-            } else {
-                const starProduct = sortedProducts[0][0];
-                const starProductData = sortedProducts[0][1];
-                const totalSales = sortedProducts.reduce((sum, product) => sum + product[1].amount, 0);
-                const starProductPercentage = (starProductData.amount / totalSales) * 100;
-                
-                // Información del producto estrella
-                doc.setFontSize(14);
-                doc.setTextColor(80, 80, 80);
-                doc.text(`Producto: ${starProduct}`, 20, 55);
-                doc.text(`Volumen vendido: ${starProductData.quantity.toFixed(2)} ${predefinedProducts[starProduct]?.tipo === "fijo" ? "unidades" : "kg"}`, 20, 62);
-                doc.text(`Participación en ventas: ${starProductPercentage.toFixed(1)}%`, 20, 69);
-                doc.text(`Rentabilidad estimada: Por calcular`, 20, 76);
-                
-                // Espacio para foto ilustrativa (simulado con texto)
-                doc.text("[Foto ilustrativa del producto]", 120, 55);
-                
-                // Tabla de todos los productos
-                const lastPosition = 85;
-                doc.setFontSize(16);
-                doc.setTextColor(50, 50, 50);
-                doc.text("TODOS LOS PRODUCTOS", 20, lastPosition);
-                
-                const productData = sortedProducts.map(product => [
-                    product[0],
-                    product[1].quantity.toFixed(2) + (predefinedProducts[product[0]]?.tipo === "fijo" ? " unid" : " kg"),
-                    product[1].count,
-                    `S/ ${product[1].amount.toFixed(2)}`,
-                    `${((product[1].amount / totalSales) * 100).toFixed(1)}%`
-                ]);
-                
-                doc.autoTable({
-                    startY: lastPosition + 10,
-                    head: [['Producto', 'Cantidad', 'Ventas', 'Total', '% del Total']],
-                    body: productData,
-                    theme: 'grid',
-                    headStyles: {
-                        fillColor: [46, 134, 222],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    alternateRowStyles: {
-                        fillColor: [240, 240, 240]
-                    }
-                });
-            }
-            
-            // Guardar PDF
-            doc.save(`Producto_Estrella_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Análisis de producto estrella generado correctamente', 'success');
-        }
-        
-        // Generar reporte de medios de pago
-        function generatePaymentsReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("ANÁLISIS DE MEDIOS DE PAGO - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Análisis de medios de pago
-            const paymentStats = {
-                efectivo: { amount: 0, count: 0 },
-                yape: { amount: 0, count: 0 },
-                transferencia: { amount: 0, count: 0 },
-                caja: { amount: 0, count: 0 }
-            };
-            
-            transactions
-                .filter(t => t.type === 'sale')
-                .forEach(t => {
-                    paymentStats[t.paymentMethod].amount += t.amount;
-                    paymentStats[t.paymentMethod].count += 1;
-                });
-            
-            const totalPaymentAmount = Object.values(paymentStats).reduce((sum, method) => sum + method.amount, 0);
-            const totalPaymentCount = Object.values(paymentStats).reduce((sum, method) => sum + method.count, 0);
-            
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("ANÁLISIS DE MEDIOS DE PAGO", 20, 45);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(80, 80, 80);
-            doc.text(`Clientes prefieren pagar con Yape en un 60%, efectivo en 40%`, 20, 55);
-            
-            // Tabla comparativa
-            const paymentData = Object.entries(paymentStats)
-                .filter(([method, data]) => data.amount > 0)
-                .map(([method, data]) => [
-                    method.charAt(0).toUpperCase() + method.slice(1),
-                    data.count,
-                    `S/ ${data.amount.toFixed(2)}`,
-                    `${((data.amount / totalPaymentAmount) * 100).toFixed(1)}%`
-                ]);
-            
-            doc.autoTable({
-                startY: 65,
-                head: [['Método de Pago', 'Transacciones', 'Monto Total', 'Participación']],
-                body: paymentData,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [108, 92, 231],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold'
-                },
-                alternateRowStyles: {
-                    fillColor: [240, 240, 240]
-                }
-            });
-            
-            // Gráfico de barras apiladas (simulado con texto)
-            const lastPosition = doc.lastAutoTable.finalY;
-            if (lastPosition < 200) {
-                doc.setFontSize(16);
-                doc.setTextColor(50, 50, 50);
-                doc.text("DISTRIBUCIÓN POR SEMANA", 20, lastPosition + 15);
-                
-                doc.setFontSize(10);
-                doc.setTextColor(80, 80, 80);
-                doc.text("Gráfico de barras apiladas: % de cada medio por semana", 20, lastPosition + 25);
-            }
-            
-            // Guardar PDF
-            doc.save(`Analisis_Pagos_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Análisis de medios de pago generado correctamente', 'success');
-        }
-        
-        // Generar reporte completo
-        function generateFullReport() {
-            const doc = new jsPDF();
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString();
-            
-            // Encabezado del reporte
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text("REPORTE COMPLETO - Anyela", 105, 20, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Generado el: ${dateStr} a las ${timeStr}`, 105, 30, { align: "center" });
-            
-            // Línea separadora
-            doc.setDrawColor(200, 200, 200);
-            doc.line(20, 35, 190, 35);
-            
-            // Índice (Tabla de contenidos)
-            doc.setFontSize(16);
-            doc.setTextColor(50, 50, 50);
-            doc.text("ÍNDICE", 20, 45);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(80, 80, 80);
-            doc.text("1. Resumen Ejecutivo", 20, 55);
-            doc.text("2. Análisis de Ventas", 20, 62);
-            doc.text("3. Análisis de Gastos", 20, 69);
-            doc.text("4. Producto Estrella", 20, 76);
-            doc.text("5. Análisis de Medios de Pago", 20, 83);
-            doc.text("6. Conclusiones y Recomendaciones", 20, 90);
-            
-            // Aquí irían todas las secciones del reporte completo
-            // Por razones de espacio, solo incluimos la primera página
-            // En una implementación real, se agregarían más páginas con cada sección
-            
-            // Guardar PDF
-            doc.save(`Reporte_Completo_Anyela_${dateStr.replace(/\//g, '-')}.pdf`);
-            showNotification('✅ Reporte completo generado correctamente', 'success');
-        }
-        
         // Actualizar la cuadrícula de productos
         function updateProductGrid() {
             productGridEl.innerHTML = '';
@@ -2720,6 +2546,12 @@
         
         // Añadir nueva categoría
         async function addCategory() {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Solo el administrador puede gestionar categorías', 'error');
+                return;
+            }
+            
             const newCategory = newCategoryEl.value.trim();
             const type = categoryTypeEl.value;
             
@@ -2805,6 +2637,12 @@
         
         // Eliminar categoría
         async function deleteCategory(type, category) {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Solo el administrador puede eliminar categorías', 'error');
+                return;
+            }
+            
             if (!confirm(`¿Está seguro de que desea eliminar la categoría "${category}"?`)) {
                 return;
             }
@@ -2831,6 +2669,12 @@
         
         // Reiniciar todos los datos
         async function resetData() {
+            // Verificar si el usuario tiene permisos
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Solo el administrador puede reiniciar los datos', 'error');
+                return;
+            }
+            
             if (!confirm('¿Está seguro de que desea reiniciar todos los datos? Se perderá toda la información.')) {
                 return;
             }
